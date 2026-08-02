@@ -5,10 +5,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20',
 });
 
-// TODO: replace with the real "AI Video - Add 30 Seconds" price id once it
-// exists in Stripe (blocked on reconnecting Stripe access as of this build).
-// Checkout will fail cleanly with a 500 until this is set correctly.
-const EXTENSION_PRICE_ID = 'REPLACE_WITH_ADD_30_SECONDS_PRICE_ID';
+// price_1U08xNRuNf570lHehZzy43sg — "AI Video - Add 30 Seconds", $35.00 USD, one-time
+const EXTENSION_PRICE_ID = 'price_1U08xNRuNf570lHehZzy43sg';
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
