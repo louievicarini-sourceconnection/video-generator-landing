@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add 30 Seconds — OricleFilms</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #15130F;
+    --bg-raised: #1D1A14;
+    --paper: #F3EDE0;
+    --paper-dim: #C9C2B0;
+    --brass: #C9974F;
+    --brass-dim: #8A6B3E;
+    --line: #3A352A;
+    --o-silly: #6FA84D;
+    --o-heartfelt: #E84D8A;
+
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--paper);
+    font-family: var(--font-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0 24px;
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 0;
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brass);
+  }
+  .logo {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--paper-dim);
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 40px 0 80px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2rem, 4.5vw, 2.8rem);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin-bottom: 18px;
+  }
+  h1 em { font-style: italic; font-weight: 400; color: var(--brass); }
+
+  .sub {
+    font-size: 16px;
+    color: var(--paper-dim);
+    max-width: 52ch;
+    margin-bottom: 28px;
+  }
+
+  video {
+    width: 100%;
+    max-width: 320px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    margin-bottom: 28px;
+    display: block;
+  }
+
+  .card {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px;
+  }
+
+  .submit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .price-tag { font-family: var(--font-mono); font-size: 13px; color: var(--paper-dim); }
+  .price-tag strong { color: var(--brass); font-size: 16px; }
+
+  button.roll {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--brass);
+    color: #15130F;
+    border: none;
+    border-radius: 999px;
+    padding: 15px 30px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  button.roll:hover { background: #E8C15C; transform: translateY(-1px); }
+  button.roll:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .status {
+    margin-top: 16px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--paper-dim);
+    display: none;
+  }
+  .status.show { display: block; }
+  .status.ok { color: var(--o-silly); }
+  .status.err { color: var(--o-heartfelt); }
+
+  footer {
+    padding: 40px 0 60px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #6b6555;
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Scene 01 / Take 1</span>
+    <span class="logo">ORICLEFILMS</span>
+  </header>
+
+  <main id="main">
+    <p class="sub" id="loadingMsg">Loading your video...</p>
+  </main>
+
+  <footer>OricleFilms — every film is written, cast, and shot by AI, just for you.</footer>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const videoId = params.get('video_id');
+  const main = document.getElementById('main');
+
+  function renderError(message) {
+    main.innerHTML = `<h1>Can't find that video.</h1><p class="sub">${message}</p>`;
+  }
+
+  function renderNotReady(status) {
+    main.innerHTML = `<h1>Still <em>rolling.</em></h1><p class="sub">This video is still being generated (status: ${status}). Once it's delivered to you, come back to this same link to add 30 more seconds.</p>`;
+  }
+
+  function renderExtendForm(video) {
+    main.innerHTML = `
+      <h1>Want it <em>longer?</em></h1>
+      <p class="sub">Add another 30 seconds to your film — same characters, same story, picking up right where it left off.</p>
+      <video src="${video.video_url}" controls></video>
+      <div class="card">
+        <div class="submit-row">
+          <span class="price-tag">Currently ${video.duration_seconds}s — add 30 more, one price — <strong>$35</strong></span>
+          <button type="button" class="roll" id="extendBtn">Add 30 Seconds →</button>
+        </div>
+        <p class="status" id="statusMsg"></p>
+      </div>
+    `;
+
+    document.getElementById('extendBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('extendBtn');
+      const statusMsg = document.getElementById('statusMsg');
+      btn.disabled = true;
+      btn.textContent = 'Sending to checkout...';
+      statusMsg.textContent = "Setting up your payment — you'll be redirected to Stripe.";
+      statusMsg.className = 'status show';
+
+      try {
+        const res = await fetch('/api/create-extension-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ video_id: videoId }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.url) throw new Error(data.error || 'Request failed');
+        window.location.href = data.url;
+      } catch (err) {
+        statusMsg.textContent = 'Something didn\'t send. Try again in a moment.';
+        statusMsg.className = 'status show err';
+        btn.disabled = false;
+        btn.textContent = 'Add 30 Seconds →';
+      }
+    });
+  }
+
+  (async () => {
+    if (!videoId) {
+      renderError('No video_id was given in the link — use the link from your delivery email.');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/get-video?video_id=${encodeURIComponent(videoId)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lookup failed');
+      if (data.status !== 'complete') {
+        renderNotReady(data.status);
+        return;
+      }
+      renderExtendForm(data);
+    } catch (err) {
+      renderError('Something went wrong looking up your video. Try the link from your email again.');
+    }
+  })();
+</script>
+
+</body>
+</html>
