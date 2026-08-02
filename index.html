@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roll Camera — Turn Your Story Into a Film</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root {
+    --bg: #15130F;
+    --bg-raised: #1D1A14;
+    --paper: #F3EDE0;
+    --paper-dim: #C9C2B0;
+    --brass: #C9974F;
+    --brass-dim: #8A6B3E;
+    --line: #3A352A;
+
+    --o-heartfelt: #E84D8A;
+    --o-funny: #E8C15C;
+    --o-dramatic: #4D9FE8;
+    --o-silly: #6FA84D;
+
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--paper);
+    font-family: var(--font-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(243,237,224,0.035) 1px, transparent 0);
+    background-size: 24px 24px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 0;
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brass);
+  }
+  .logo {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--paper-dim);
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 56px;
+    align-items: center;
+    padding: 40px 0 80px;
+  }
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; padding-top: 8px; padding-bottom: 48px; }
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2.6rem, 5.6vw, 4.4rem);
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    margin-bottom: 22px;
+  }
+  h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--brass);
+  }
+  .sub {
+    font-size: 17px;
+    color: var(--paper-dim);
+    max-width: 46ch;
+    margin-bottom: 28px;
+  }
+  .hero-meta {
+    display: flex;
+    gap: 28px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--paper-dim);
+    flex-wrap: wrap;
+  }
+  .hero-meta strong { color: var(--brass); }
+
+  /* ---------- Clapperboard ---------- */
+  .stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .clapper {
+    width: min(320px, 70vw);
+  }
+  .clapper-top {
+    background: repeating-linear-gradient(-45deg, #15130F, #15130F 18px, var(--paper) 18px, var(--paper) 36px);
+    border-radius: 8px 8px 0 0;
+    height: 46px;
+    transform-origin: bottom left;
+    transition: transform 0.5s cubic-bezier(.2,.8,.2,1);
+    box-shadow: 0 -2px 0 1px rgba(0,0,0,0.3);
+  }
+  .clapper.clapped .clapper-top { transform: rotate(-22deg); }
+  .clapper-body {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 0 0 8px 8px;
+    padding: 22px;
+    min-height: 220px;
+  }
+  .clapper-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--paper-dim);
+    border-bottom: 1px dashed var(--line);
+    padding: 8px 0;
+  }
+  .clapper-row:last-child { border-bottom: none; }
+  .clapper-row span:first-child { color: var(--brass); }
+  .clapper-scene {
+    text-align: center;
+    padding-top: 18px;
+  }
+  .clapper-scene-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--paper-dim);
+    margin-bottom: 4px;
+  }
+  .clapper-scene-name {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--o-heartfelt);
+    transition: color 0.3s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .clapper-top { transition: none !important; }
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  @media (max-width: 640px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+
+  .pick-card {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 14px;
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--font-body);
+    color: var(--paper);
+    transition: border-color 0.2s ease, transform 0.15s ease, background 0.2s ease;
+    position: relative;
+  }
+  .pick-card:hover { transform: translateY(-2px); border-color: var(--brass-dim); }
+  .pick-card.active {
+    border-color: var(--swatch, var(--brass));
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
+  }
+  .swatch {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--swatch, var(--brass));
+    margin-bottom: 10px;
+  }
+  .pick-name { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+  .pick-desc { font-size: 12px; color: var(--paper-dim); }
+
+  form {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 32px;
+  }
+  @media (max-width: 640px) { form { padding: 22px; } }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+
+  label.field-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--paper-dim);
+    margin-bottom: 7px;
+  }
+
+  input, textarea, select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--paper);
+    font-family: var(--font-body);
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  input::placeholder, textarea::placeholder { color: #6b6555; }
+  input:focus, textarea:focus, select:focus { border-color: var(--brass); }
+  textarea { min-height: 110px; resize: vertical; }
+
+  .toggle-group {
+    display: flex;
+    gap: 8px;
+  }
+  .toggle-btn {
+    flex: 1;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: var(--bg);
+    color: var(--paper-dim);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0 14px;
+    height: 46px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+  }
+  .toggle-btn.active {
+    border-color: var(--brass);
+    color: var(--brass);
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
+  }
+
+  .field-block { margin-bottom: 22px; }
+  .hint { font-family: var(--font-mono); font-size: 11px; color: var(--paper-dim); margin-top: 6px; }
+
+  .cast-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto auto;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  @media (max-width: 700px) {
+    .cast-row { grid-template-columns: 1fr 1fr; }
+    .cast-row .file-btn, .cast-row .add-btn { grid-column: span 1; }
+  }
+  .cast-row input { font-size: 14px; padding: 11px 12px; }
+  .file-btn, .add-btn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--brass);
+    border: 1px solid var(--brass-dim);
+    border-radius: 8px;
+    padding: 0 16px;
+    height: 44px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .file-btn:hover, .add-btn:hover { background: var(--brass); color: #15130F; }
+  .file-btn.has-file { border-color: var(--o-silly); color: var(--o-silly); }
+  input[type="file"] { display: none; }
+
+  .cast-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .cast-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 7px 8px 7px 14px;
+    font-size: 13px;
+  }
+  .cast-chip img {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .cast-chip .chip-name { color: var(--brass); font-weight: 600; }
+  .cast-chip .chip-remove {
+    background: var(--line);
+    color: var(--paper);
+    border: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cast-chip .chip-remove:hover { background: var(--o-heartfelt); }
+
+  .submit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .price-tag { font-family: var(--font-mono); font-size: 13px; color: var(--paper-dim); }
+  .price-tag strong { color: var(--brass); font-size: 16px; }
+
+  button.roll {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--brass);
+    color: #15130F;
+    border: none;
+    border-radius: 999px;
+    padding: 15px 30px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  button.roll:hover { background: #E8C15C; transform: translateY(-1px); }
+  button.roll:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .status {
+    margin-top: 16px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--paper-dim);
+    display: none;
+  }
+  .status.show { display: block; }
+  .status.ok { color: var(--o-silly); }
+  .status.err { color: var(--o-heartfelt); }
+
+  footer {
+    padding: 40px 0 60px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #6b6555;
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <span class="eyebrow">Scene 01 / Take 1</span>
+    <span class="logo">ORICLE&nbsp;STUDIOS</span>
+  </header>
+
+  <section class="hero">
+    <div>
+      <h1>Tell us what<br>happened. <em>We'll<br>roll camera.</em></h1>
+      <p class="sub">Give us your story and a photo, and an AI film crew turns it into a real, finished video — your characters, your moment, delivered to your inbox.</p>
+      <div class="hero-meta">
+        <span><strong>~3 min</strong> to write</span>
+        <span><strong>~8 min</strong> to shoot</span>
+        <span><strong>30 sec</strong> original film, yours</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="clapper" id="clapper">
+        <div class="clapper-top"></div>
+        <div class="clapper-body">
+          <div class="clapper-row"><span>PROD</span><span id="clapProd">Oricle Studios</span></div>
+          <div class="clapper-row"><span>OCCASION</span><span id="clapOccasion">—</span></div>
+          <div class="clapper-row"><span>STYLE</span><span id="clapStyle">—</span></div>
+          <div class="clapper-scene">
+            <div class="clapper-scene-label">Now Casting</div>
+            <div class="clapper-scene-name" id="clapCast">Pick an occasion</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <span class="section-label">01 — What's the occasion</span>
+  <div class="cards" id="occasionGrid">
+    <button type="button" class="pick-card" data-value="birthday" data-color="#E8C15C"><div class="swatch"></div><div class="pick-name">Birthday</div><div class="pick-desc">A birthday moment</div></button>
+    <button type="button" class="pick-card" data-value="tribute" data-color="#4D9FE8"><div class="swatch"></div><div class="pick-name">Tribute</div><div class="pick-desc">Honor someone</div></button>
+    <button type="button" class="pick-card" data-value="proposal" data-color="#E84D8A"><div class="swatch"></div><div class="pick-name">Proposal</div><div class="pick-desc">Pop the question</div></button>
+    <button type="button" class="pick-card" data-value="roast" data-color="#B4482E"><div class="swatch"></div><div class="pick-name">Roast</div><div class="pick-desc">Give them grief</div></button>
+    <button type="button" class="pick-card" data-value="anniversary" data-color="#9C5DE8"><div class="swatch"></div><div class="pick-name">Anniversary</div><div class="pick-desc">Mark the years</div></button>
+    <button type="button" class="pick-card" data-value="just_because" data-color="#6FA84D"><div class="swatch"></div><div class="pick-name">Just Because</div><div class="pick-desc">No occasion needed</div></button>
+    <button type="button" class="pick-card" data-value="commercial" data-color="#C9974F"><div class="swatch"></div><div class="pick-name">Commercial</div><div class="pick-desc">Promote a product</div></button>
+  </div>
+
+  <span class="section-label">02 — Look and feel</span>
+  <div class="cards" id="styleGrid" style="grid-template-columns: repeat(2, 1fr); max-width: 420px;">
+    <button type="button" class="pick-card" data-value="realistic" data-color="#4D9FE8"><div class="swatch"></div><div class="pick-name">Realistic</div><div class="pick-desc">Live-action look</div></button>
+    <button type="button" class="pick-card" data-value="animated" data-color="#E8C15C"><div class="swatch"></div><div class="pick-name">Animated</div><div class="pick-desc">Illustrated look</div></button>
+  </div>
+
+  <form id="videoForm">
+    <span class="section-label">03 — Who's in it</span>
+    <div class="field-block">
+      <div class="toggle-group" id="castToggle" style="max-width: 420px; margin-bottom: 14px;">
+        <button type="button" class="toggle-btn active" data-value="upload">Upload a photo</button>
+        <button type="button" class="toggle-btn" data-value="ai">Let AI create them</button>
+      </div>
+      <div class="cast-row">
+        <input type="text" id="castName" placeholder="Their name">
+        <input type="text" id="castDesc" placeholder="Describe them (hair, build, vibe...)">
+        <button type="button" class="file-btn" id="castFileBtn">Choose photo</button>
+        <button type="button" class="add-btn" id="castAddBtn">Add</button>
+      </div>
+      <input type="file" id="castFileInput" accept="image/*">
+      <p class="hint" id="castHint">Upload a real photo — we'll use it directly. No AI photo generation needed.</p>
+      <div class="cast-list" id="castList"></div>
+    </div>
+
+    <span class="section-label">04 — Tell the story</span>
+    <div class="field-block">
+      <div class="toggle-group" id="storyToggle" style="max-width: 420px; margin-bottom: 14px;">
+        <button type="button" class="toggle-btn active" data-value="write">Write it myself</button>
+        <button type="button" class="toggle-btn" data-value="ai">Let AI draft it</button>
+      </div>
+
+      <div id="storyWriteFields">
+        <label class="field-label" for="storyText">What's going on</label>
+        <textarea id="storyText" placeholder="Write it like you're telling a friend. Names, details, the small stuff — it all makes the film better."></textarea>
+      </div>
+
+      <div id="storyAiFields" style="display:none;">
+        <div class="row">
+          <div>
+            <label class="field-label" for="storyWho">Who's it for</label>
+            <input type="text" id="storyWho" placeholder="Sarah">
+          </div>
+          <div>
+            <label class="field-label" for="storyTone">Tone</label>
+            <select id="storyTone">
+              <option value="heartfelt">Heartfelt</option>
+              <option value="funny">Funny</option>
+              <option value="dramatic">Dramatic</option>
+              <option value="silly">Silly</option>
+            </select>
+          </div>
+        </div>
+        <label class="field-label" for="storyMemory">The specific detail or memory</label>
+        <textarea id="storyMemory" placeholder="She just adopted a rescue dog named Biscuit after months of searching."></textarea>
+      </div>
+    </div>
+
+    <span class="section-label">05 — Sound</span>
+    <div class="field-block">
+      <div class="toggle-group" id="dialogueToggle" style="max-width: 420px;">
+        <button type="button" class="toggle-btn active" data-value="true">Voiceover on</button>
+        <button type="button" class="toggle-btn" data-value="false">Ambient only</button>
+      </div>
+      <p class="hint">Every video has soft, ASMR-style ambient sound. "Voiceover on" adds a spoken line where it fits the story.</p>
+    </div>
+
+    <span class="section-label">06 — Delivery</span>
+    <div class="row">
+      <div>
+        <label class="field-label">Where should we send it?</label>
+        <div class="toggle-group" id="deliveryToggle">
+          <button type="button" class="toggle-btn active" data-value="email">Email</button>
+          <!-- Text delivery temporarily hidden until Twilio number is approved. -->
+          <button type="button" class="toggle-btn" data-value="phone" style="display:none;">Text</button>
+        </div>
+      </div>
+      <div>
+        <label class="field-label" for="contact" id="contactLabel">Email — we'll send it here</label>
+        <input type="email" id="contact" placeholder="you@email.com" required>
+      </div>
+    </div>
+
+    <div class="submit-row">
+      <span class="price-tag">30 seconds, one price — <strong>$35</strong></span>
+      <button type="submit" class="roll" id="submitBtn">Roll Camera →</button>
+    </div>
+
+    <p class="status" id="statusMsg"></p>
+  </form>
+
+  <footer>Oricle Studios — every film is written, cast, and shot by AI, just for you.</footer>
+</div>
+
+<script>
+  const referralCode = new URLSearchParams(window.location.search).get('ref');
+
+  const SUPABASE_URL = "https://spxicyljcsmjgpitmqml.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNweGljeWxqY3NtamdwaXRtcW1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwNzYwNjUsImV4cCI6MjEwMDY1MjA2NX0.UNNuPt6VMVCdyh84F1GjiUbof5HqLvYqUdtlHhUXyck";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ---- Clapperboard ----
+  const clapper = document.getElementById('clapper');
+  const clapOccasion = document.getElementById('clapOccasion');
+  const clapStyle = document.getElementById('clapStyle');
+  const clapCast = document.getElementById('clapCast');
+
+  function clapIt() {
+    clapper.classList.remove('clapped');
+    void clapper.offsetWidth;
+    clapper.classList.add('clapped');
+  }
+
+  // ---- Occasion picker ----
+  let selectedOccasion = null;
+  document.querySelectorAll('#occasionGrid .pick-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('#occasionGrid .pick-card').forEach(c => { c.classList.remove('active'); c.style.removeProperty('--swatch'); });
+      card.classList.add('active');
+      card.style.setProperty('--swatch', card.dataset.color);
+      selectedOccasion = card.dataset.value;
+      clapOccasion.textContent = card.querySelector('.pick-name').textContent;
+      clapCast.textContent = card.querySelector('.pick-name').textContent + ' Scene';
+      clapCast.style.color = card.dataset.color;
+      clapIt();
+    });
+  });
+
+  // ---- Style picker ----
+  let selectedStyle = null;
+  document.querySelectorAll('#styleGrid .pick-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('#styleGrid .pick-card').forEach(c => { c.classList.remove('active'); c.style.removeProperty('--swatch'); });
+      card.classList.add('active');
+      card.style.setProperty('--swatch', card.dataset.color);
+      selectedStyle = card.dataset.value;
+      clapStyle.textContent = card.querySelector('.pick-name').textContent;
+      clapIt();
+    });
+  });
+
+  // ---- Cast source toggle ----
+  let castSource = 'upload';
+  const castFileBtn = document.getElementById('castFileBtn');
+  const castFileInput = document.getElementById('castFileInput');
+  const castHint = document.getElementById('castHint');
+  let pendingPhotoUrl = '';
+
+  document.querySelectorAll('#castToggle .toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#castToggle .toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      castSource = btn.dataset.value;
+      if (castSource === 'ai') {
+        castFileBtn.style.display = 'none';
+        castHint.textContent = "We'll generate a reference photo from your description.";
+      } else {
+        castFileBtn.style.display = '';
+        castHint.textContent = "Upload a real photo — we'll use it directly. No AI photo generation needed.";
+      }
+    });
+  });
+
+  castFileBtn.addEventListener('click', () => castFileInput.click());
+  castFileInput.addEventListener('change', async () => {
+    const file = castFileInput.files[0];
+    if (!file) return;
+    castFileBtn.textContent = "Uploading...";
+    castFileBtn.disabled = true;
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabaseClient.storage.from('character-uploads').upload(path, file);
+      if (error) throw error;
+      const { data } = supabaseClient.storage.from('character-uploads').getPublicUrl(path);
+      pendingPhotoUrl = data.publicUrl;
+      castFileBtn.textContent = "Photo added ✓";
+      castFileBtn.classList.add('has-file');
+    } catch (err) {
+      castFileBtn.textContent = "Upload failed — retry";
+      pendingPhotoUrl = '';
+    } finally {
+      castFileBtn.disabled = false;
+    }
+  });
+
+  const castList = document.getElementById('castList');
+  const castNameInput = document.getElementById('castName');
+  const castDescInput = document.getElementById('castDesc');
+  const castAddBtn = document.getElementById('castAddBtn');
+  let cast = [];
+
+  function renderCast() {
+    castList.innerHTML = '';
+    cast.forEach((c, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'cast-chip';
+      chip.innerHTML = (c.photo ? `<img src="${c.photo}" alt="">` : '') + `<span class="chip-name">${c.name}</span>`;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'chip-remove';
+      remove.textContent = '×';
+      remove.addEventListener('click', () => { cast.splice(i, 1); renderCast(); });
+      chip.appendChild(remove);
+      castList.appendChild(chip);
+    });
+  }
+
+  castAddBtn.addEventListener('click', () => {
+    const name = castNameInput.value.trim();
+    if (!name) return;
+    if (castSource === 'upload' && !pendingPhotoUrl) {
+      castHint.textContent = "Choose a photo first, then add them.";
+      return;
+    }
+    cast.push({
+      name,
+      description: castDescInput.value.trim(),
+      photo: castSource === 'upload' ? pendingPhotoUrl : '',
+    });
+    castNameInput.value = '';
+    castDescInput.value = '';
+    pendingPhotoUrl = '';
+    castFileBtn.textContent = "Choose photo";
+    castFileBtn.classList.remove('has-file');
+    castFileInput.value = '';
+    renderCast();
+  });
+
+  // ---- Story mode toggle ----
+  let storyMode = 'write';
+  const storyWriteFields = document.getElementById('storyWriteFields');
+  const storyAiFields = document.getElementById('storyAiFields');
+  document.querySelectorAll('#storyToggle .toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#storyToggle .toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      storyMode = btn.dataset.value;
+      storyWriteFields.style.display = storyMode === 'write' ? '' : 'none';
+      storyAiFields.style.display = storyMode === 'ai' ? '' : 'none';
+    });
+  });
+
+  // ---- Dialogue toggle ----
+  let dialogueOn = true;
+  document.querySelectorAll('#dialogueToggle .toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#dialogueToggle .toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      dialogueOn = btn.dataset.value === 'true';
+    });
+  });
+
+  // ---- Delivery method ----
+  const contactInput = document.getElementById('contact');
+  const contactLabel = document.getElementById('contactLabel');
+  let deliveryMethod = 'email';
+  document.querySelectorAll('#deliveryToggle .toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#deliveryToggle .toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      deliveryMethod = btn.dataset.value;
+      contactInput.value = '';
+      if (deliveryMethod === 'phone') {
+        contactInput.type = 'tel';
+        contactInput.placeholder = '(555) 123-4567';
+        contactLabel.textContent = "Phone number — we'll text it here";
+      } else {
+        contactInput.type = 'email';
+        contactInput.placeholder = 'you@email.com';
+        contactLabel.textContent = "Email — we'll send it here";
+      }
+    });
+  });
+
+  // ---- Submit ----
+  const form = document.getElementById('videoForm');
+  const statusMsg = document.getElementById('statusMsg');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!selectedOccasion) {
+      statusMsg.textContent = "Pick an occasion above before rolling camera.";
+      statusMsg.className = "status show err";
+      return;
+    }
+    if (!selectedStyle) {
+      statusMsg.textContent = "Pick a look and feel above before rolling camera.";
+      statusMsg.className = "status show err";
+      return;
+    }
+    if (cast.length === 0) {
+      statusMsg.textContent = "Add at least one character before rolling camera.";
+      statusMsg.className = "status show err";
+      return;
+    }
+    if (storyMode === 'write' && !document.getElementById('storyText').value.trim()) {
+      statusMsg.textContent = "Tell us what's going on before rolling camera.";
+      statusMsg.className = "status show err";
+      return;
+    }
+    if (storyMode === 'ai' && (!document.getElementById('storyWho').value.trim() || !document.getElementById('storyMemory').value.trim())) {
+      statusMsg.textContent = "Fill in who it's for and the memory before rolling camera.";
+      statusMsg.className = "status show err";
+      return;
+    }
+
+    const payload = {
+      occasion: selectedOccasion,
+      story: {
+        source: storyMode,
+        text: storyMode === 'write' ? document.getElementById('storyText').value.trim() : '',
+        voiceMemo: null,
+        who: storyMode === 'ai' ? document.getElementById('storyWho').value.trim() : '',
+        memory: storyMode === 'ai' ? document.getElementById('storyMemory').value.trim() : '',
+        tone: document.getElementById('storyTone').value,
+      },
+      characters: {
+        source: castSource,
+        list: cast,
+      },
+      style: selectedStyle,
+      dialogue: dialogueOn,
+      delivery_method: deliveryMethod,
+      delivery_email: deliveryMethod === 'email' ? contactInput.value : null,
+      delivery_phone: deliveryMethod === 'phone' ? contactInput.value : null,
+      referral_code: referralCode,
+    };
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sending to checkout...";
+    statusMsg.textContent = "Setting up your payment — you'll be redirected to Stripe.";
+    statusMsg.className = "status show";
+
+    try {
+      const res = await fetch("/api/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Request failed");
+      const data = await res.json();
+      if (!data.url) throw new Error("No checkout URL returned");
+      window.location.href = data.url;
+    } catch (err) {
+      statusMsg.textContent = "Something didn't send. Try again in a moment.";
+      statusMsg.className = "status show err";
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Roll Camera →";
+    }
+  });
+</script>
+
+</body>
+</html>

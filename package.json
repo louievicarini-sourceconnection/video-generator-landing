@@ -1,0 +1,10 @@
+{
+  "name": "video-generator-landing",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "pg": "^8.13.1",
+    "raw-body": "^2.5.2",
+    "stripe": "^17.0.0"
+  }
+}
